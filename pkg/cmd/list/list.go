@@ -23,7 +23,7 @@ const (
 
 var (
 	nameAlphaPattern         = regexp.MustCompile(`^[a-zA-Z0-9_].*$`)
-	qiniuBotPRCommentPattern = regexp.MustCompile(`https://github\\.com/([^/]+)/([^/]+)/pull/([0-9]+)`)
+	qiniuBotPRCommentPattern = regexp.MustCompile(`https://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)`)
 )
 
 func NewCmd(f cmdutil.Factory) *cobra.Command {
@@ -155,8 +155,10 @@ func serviceNameMatched(src, target string) bool {
 func isPRMerged(cli *github.Client, ctx context.Context, owner, repo string, number int) (merged bool, mergedAt time.Time, err error) {
 	pr, _, err := cli.PullRequests.Get(ctx, owner, repo, number)
 	if err != nil {
+		fmt.Println("get pr error:", err)
 		return
 	}
+	fmt.Println("get pr:", number, pr.State)
 	merged = pr.GetMerged()
 	mergedAt = pr.GetMergedAt()
 	return

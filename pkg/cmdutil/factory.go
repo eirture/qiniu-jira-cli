@@ -67,7 +67,7 @@ func (f *factory) JiraClient() (cli *jira.Client, err error) {
 }
 
 func (f *factory) GithubClient(ctx context.Context) (cli *github.Client, err error) {
-	github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: f.cfg.Github.OAuthToken})))
+	cli = github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: f.cfg.Github.OAuthToken})))
 	return
 }
 
