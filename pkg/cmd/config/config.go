@@ -40,19 +40,24 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 					return
 				}
 			}
-			err = cmdutil.AskVar("Github OAuth Token", &cfg.Github.OAuthToken, cmdutil.WithAskPassword(true))
-			if err != nil {
-				return
+			createNewGithubToken := true
+			if cfg.Github.OAuthToken != "" {
+				var answer string
+				answer, err = cmdutil.Ask(fmt.Sprintf("\nGithub OAuth Token: %s\nIs this correct? (Y/n)", cmdutil.AsteriskStr(cfg.Github.OAuthToken)), cmdutil.WithAskDefaultValue("Y"))
+				if err != nil {
+					return
+				}
+				createNewGithubToken = strings.ToUpper(answer) != "Y"
 			}
-			//createNewGithubToken := true
-			//if cfg.Github.OAuthToken != "" {
-			//	var answer string
-			//	answer, err = cmdutil.Ask(fmt.Sprintf("\nGithub OAuth Token: %s\nIs this correct? (Y/n)", cfg.Github.OAuthToken), cmdutil.WithAskDefaultValue("Y"))
-			//	if err != nil {
-			//		return
-			//	}
-			//	createNewGithubToken = strings.ToUpper(answer) != "Y"
-			//}
+			if createNewGithubToken {
+				fmt.Println("You can create a new personal token at:\n\thttps://github.com/settings/tokens/new?scopes=repo&description=qiniu-jira-cli")
+				var token string
+				err = cmdutil.AskVar("Github OAuth Token", &token, cmdutil.WithAskPassword(true))
+				if err != nil {
+					return
+				}
+				cfg.Github.OAuthToken = token
+			}
 			//if createNewGithubToken {
 			//	var token string
 			//	token, err = githubOAuthFlow()
@@ -61,7 +66,10 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 			//	}
 			//	cfg.Github.OAuthToken = token
 			//}
-			cfgbytes, err := yaml.Marshal(cfg)
+			asteriskCfg := cfg
+			asteriskCfg.Jira.Password = cmdutil.AsteriskStr(asteriskCfg.Jira.Password)
+			asteriskCfg.Github.OAuthToken = cmdutil.AsteriskStr(asteriskCfg.Github.OAuthToken)
+			cfgbytes, err := yaml.Marshal(asteriskCfg)
 			if err != nil {
 				return
 			}

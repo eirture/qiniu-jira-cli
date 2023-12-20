@@ -155,10 +155,9 @@ func serviceNameMatched(src, target string) bool {
 func isPRMerged(cli *github.Client, ctx context.Context, owner, repo string, number int) (merged bool, mergedAt time.Time, err error) {
 	pr, _, err := cli.PullRequests.Get(ctx, owner, repo, number)
 	if err != nil {
-		fmt.Println("get pr error:", err)
+		fmt.Fprintf(os.Stderr, "get pr %s/%s#%d error: %v\n", owner, repo, number, err)
 		return
 	}
-	fmt.Println("get pr:", number, pr.State)
 	merged = pr.GetMerged()
 	mergedAt = pr.GetMergedAt()
 	return
