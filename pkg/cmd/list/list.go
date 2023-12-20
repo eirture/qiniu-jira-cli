@@ -17,13 +17,12 @@ import (
 )
 
 const (
-	IssueFieldKeyServiceList = "customfield_12300"
-	BotName                  = "qiniu-bot"
+	BotName = "qiniu-bot"
 )
 
 var (
-	nameAlphaPattern         = regexp.MustCompile(`^[a-zA-Z0-9_].*$`)
 	qiniuBotPRCommentPattern = regexp.MustCompile(`https://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)`)
+	publishedPattern         = regexp.MustCompile(`^.+已发布.*$`)
 )
 
 func NewCmd(f cmdutil.Factory) *cobra.Command {
@@ -98,7 +97,7 @@ func SearchPublishingIssues(cli *jira.Client, githubCli *github.Client, services
 			}
 			owner, repo, pr := parts[1], parts[2], parts[3]
 			prNumber, _ := strconv.Atoi(pr)
-			merged, mergedAt, err = isPRMerged(githubCli, context.Background(), owner, repo, prNumber)
+			merged, mergedAt, err = cmdutil.IsPRMerged(githubCli, context.Background(), owner, repo, prNumber)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "check %s pr %s error: %v\n", issue.Key, parts[0], err)
 				continue
@@ -126,39 +125,18 @@ func SearchPublishingIssues(cli *jira.Client, githubCli *github.Client, services
 }
 
 func getUnpublishedServices(issue *jira.Issue, filterServices []string) (results []string) {
-	services, _ := issue.Fields.Unknowns[IssueFieldKeyServiceList].(string)
+	services, _ := issue.Fields.Unknowns[cmdutil.IssueFieldKeyServiceList].(string)
 LOOP:
 	for _, s := range strings.Split(services, "\n") {
 		svc := strings.TrimSpace(s)
 		for _, ps := range filterServices {
-			if serviceNameMatched(svc, ps) {
-				if svc == ps {
+			if cmdutil.MatchServiceName(svc, ps) {
+				if !publishedPattern.MatchString(svc) {
 					results = append(results, ps)
 					continue LOOP
 				}
 			}
 		}
 	}
-	return
-}
-
-func serviceNameMatched(src, target string) bool {
-	if !strings.HasPrefix(src, target) {
-		return false
-	}
-	if len(src) > len(target) && nameAlphaPattern.MatchString(src[len(target):]) {
-		return false
-	}
-	return true
-}
-
-func isPRMerged(cli *github.Client, ctx context.Context, owner, repo string, number int) (merged bool, mergedAt time.Time, err error) {
-	pr, _, err := cli.PullRequests.Get(ctx, owner, repo, number)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "get pr %s/%s#%d error: %v\n", owner, repo, number, err)
-		return
-	}
-	merged = pr.GetMerged()
-	mergedAt = pr.GetMergedAt()
 	return
 }
