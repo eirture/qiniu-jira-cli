@@ -21,7 +21,7 @@ const (
 func NewCmd(f cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "set the configs of jira and github",
+		Short: "Set the configs of jira and github",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cfg := f.Config()
 
