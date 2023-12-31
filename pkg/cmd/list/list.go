@@ -23,7 +23,6 @@ const (
 
 var (
 	qiniuBotPRCommentPattern = regexp.MustCompile(`https://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)`)
-	publishedPattern         = regexp.MustCompile(`^.+已发布.*$`)
 )
 
 func NewCmd(f cmdutil.Factory) *cobra.Command {
@@ -49,9 +48,16 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 			slices.SortFunc(issues, func(a, b Issue) int {
 				return a.MergedAt.Compare(b.MergedAt)
 			})
+			data := [][]string{}
 			for _, issue := range issues {
-				fmt.Println(issue.Key, issue.MergedAt, issue.UnpublishedServices)
+				data = append(data, []string{
+					issue.Key,
+					issue.MergedAt.Local().Format("2006-01-02 15:04:05 -07:00"),
+					strings.Join(issue.UnpublishedServices, ", "),
+				})
+				// fmt.Println(issue.Key, issue.MergedAt, issue.UnpublishedServices)
 			}
+			cmdutil.WriteTable(data, "Issue", "Merged At", "Unpublished Services")
 			return
 		},
 	}
@@ -150,12 +156,14 @@ func getUnpublishedServices(issue *jira.Issue, filterServices []string) (results
 LOOP:
 	for _, s := range strings.Split(services, "\n") {
 		svc := strings.TrimSpace(s)
+		if cmdutil.IsPublishedService(svc) {
+			continue
+		}
 		for _, ps := range filterServices {
 			if cmdutil.MatchServiceName(svc, ps) {
-				if !publishedPattern.MatchString(svc) {
-					results = append(results, ps)
-					continue LOOP
-				}
+				results = append(results, ps)
+				// try to next service
+				continue LOOP
 			}
 		}
 	}

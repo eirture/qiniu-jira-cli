@@ -6,6 +6,7 @@ import (
 
 	"github.com/andygrunwald/go-jira"
 	"github.com/eirture/qiniu-jira-cli/pkg/cmdutil"
+	"github.com/eirture/qiniu-jira-cli/pkg/x/sets"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +15,7 @@ func NewCmdUpdatePublishedServices(f cmdutil.Factory) *cobra.Command {
 		Use:     "update-published-services ISSUE SERVICE [SERVICE...]",
 		Aliases: []string{"ups"},
 		Args:    cobra.MinimumNArgs(2),
-		Short:   "Update published services of all associated issues",
+		Short:   "Update published services of all associated issues of the given deployment issue",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			cli, err := f.JiraClient()
 			if err != nil {
@@ -25,11 +26,18 @@ func NewCmdUpdatePublishedServices(f cmdutil.Factory) *cobra.Command {
 			if err != nil {
 				return
 			}
+			if len(issueKeys) == 0 {
+				fmt.Println("no linked issues")
+				return
+			}
+			var svcs []string
 			for _, issueKey := range issueKeys {
-				err = UpdatePublishedService(cli, issueKey, args[1:]...)
+				svcs, err = UpdatePublishedService(cli, issueKey, args[1:]...)
 				if err != nil {
-					fmt.Println(issueKey, "failed: ", err)
+					fmt.Printf("%s: %v\n", issueKey, err)
+					continue
 				}
+				fmt.Printf("%s: [%s]\n", issueKey, strings.Join(svcs, ", "))
 			}
 			return
 		},
@@ -43,15 +51,20 @@ func GetLinkIssues(cli *jira.Client, issueID string) (issueKeys []string, err er
 		return
 	}
 	for _, link := range issue.Fields.IssueLinks {
-		if link.OutwardIssue == nil {
+		var issue string
+		if link.OutwardIssue != nil {
+			issue = link.OutwardIssue.Key
+		} else if link.InwardIssue != nil {
+			issue = link.InwardIssue.Key
+		} else {
 			continue
 		}
-		issueKeys = append(issueKeys, link.OutwardIssue.Key)
+		issueKeys = append(issueKeys, issue)
 	}
 	return
 }
 
-func UpdatePublishedService(cli *jira.Client, issueKey string, publishedServices ...string) (err error) {
+func UpdatePublishedService(cli *jira.Client, issueKey string, publishedServices ...string) (updatedServices []string, err error) {
 	issue, _, err := cli.Issue.Get(issueKey, nil)
 	if err != nil {
 		return
@@ -61,29 +74,25 @@ func UpdatePublishedService(cli *jira.Client, issueKey string, publishedServices
 		return
 	}
 
+	pServices := sets.NewSet[string](publishedServices...)
 	services, _ := issue.Fields.Unknowns[cmdutil.IssueFieldKeyServiceList].(string)
 	var newServices strings.Builder
-	var updated bool
-LOOP:
 	for _, s := range strings.Split(services, "\n") {
 		svc := strings.TrimSpace(s)
-		for _, ps := range publishedServices {
-			if cmdutil.MatchServiceName(svc, ps) {
-				if svc == ps {
-					updated = true
-					newServices.WriteString(svc + "（已发布）\n")
-					continue LOOP
-				}
+		if !cmdutil.IsPublishedService(svc) {
+			psn := cmdutil.GetPureServiceName(svc)
+			if pServices.Has(psn) {
+				updatedServices = append(updatedServices, psn)
+				// use the `svc`` to keep the original service name marks
+				svc += cmdutil.ServicePublishedMark
 			}
 		}
 		newServices.WriteString(svc + "\n")
 	}
 
-	if !updated {
-		fmt.Println(issueKey, "nothing changed")
+	if len(updatedServices) == 0 {
 		return
 	}
-	fmt.Println(issueKey, "updated")
 	err = UpdateIssueServiceList(cli, issueKey, newServices.String())
 	return
 }
