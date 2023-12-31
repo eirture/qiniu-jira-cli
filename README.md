@@ -63,19 +63,31 @@ Now you can list deploying issues via:
 
 ```sh
 $ qiniujira list-deploying-issues qboxrspub qboxs3apiv2
-KODO-16347 2023-12-14 08:17:12 +0000 UTC [qboxrspub qboxs3apiv2]
-KODO-19275 2023-12-18 09:41:21 +0000 UTC [qboxs3apiv2]
-KODO-19512 2023-12-21 08:58:51 +0000 UTC [qboxrspub]
+    ISSUE    |         MERGED AT          |  UNPUBLISHED SERVICES   
+-------------+----------------------------+-------------------------
+  KODO-16347 | 2023-12-14 16:17:12 +08:00 | qboxrspub, qboxs3apiv2  
+  KODO-19275 | 2023-12-18 17:41:21 +08:00 | qboxs3apiv2             
+  KODO-19221 | 2023-12-20 14:12:43 +08:00 | qboxs3apiv2, qboxrspub  
+  KODO-19512 | 2023-12-21 16:58:51 +08:00 | qboxrspub               
+  KODO-18706 | 2023-12-25 11:49:58 +08:00 | qboxs3apiv2, qboxrspub  
+  KODO-19394 | 2023-12-26 10:00:35 +08:00 | qboxrspub, qboxs3apiv2  
+  KODO-19300 | 2023-12-27 20:48:04 +08:00 | qboxrspub, qboxs3apiv2 
 ```
 
 And you can update published services via (Only the publishing status issues will be updated):
 ```sh 
 $ qiniujira update-published-services KODO-19447 qboxlcc
-KODO-18966 nothing changed
-KODO-17983 updated
-KODO-18117 nothing changed
-KODO-18373 nothing changed
-KODO-18671 nothing changed
-KODO-18824 nothing changed
-KODO-18890 nothing changed
+KODO-19077: []
+KODO-19080: []
+KODO-19083: []
+KODO-19106: []
+KODO-19379: []
+KODO-19234: []
+KODO-18966: []
+KODO-17983: [qboxlcc]
+KODO-18117: []
+KODO-18373: []
+KODO-18671: []
+KODO-18824: []
+KODO-18890: []
 ```
