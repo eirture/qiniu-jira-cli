@@ -30,7 +30,7 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list-deploying-issues SERVICE [SERVICE...]",
 		Aliases: []string{"ldi"},
-		Short:   "List all issues",
+		Short:   "List all deploying issues of specified services",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			jiraCli, err := f.JiraClient()
 			if err != nil {
