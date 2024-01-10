@@ -23,6 +23,7 @@ const (
 
 var (
 	qiniuBotPRCommentPattern = regexp.MustCompile(`https://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)`)
+	tomorrowNow              = time.Now().Add(24 * time.Hour)
 )
 
 func NewCmd(f cmdutil.Factory) *cobra.Command {
@@ -50,9 +51,13 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 			})
 			data := [][]string{}
 			for _, issue := range issues {
+				mergedAt := "Unknown"
+				if !issue.MergedAt.Equal(tomorrowNow) {
+					mergedAt = issue.MergedAt.Local().Format("2006-01-02 15:04:05 -07:00")
+				}
 				data = append(data, []string{
 					issue.Key,
-					issue.MergedAt.Local().Format("2006-01-02 15:04:05 -07:00"),
+					mergedAt,
 					strings.Join(issue.UnpublishedServices, ", "),
 				})
 				// fmt.Println(issue.Key, issue.MergedAt, issue.UnpublishedServices)
@@ -116,12 +121,14 @@ func SearchPublishingIssues(cli *jira.Client, githubCli *github.Client, services
 					merged, mergedAt, err = cmdutil.IsPRMerged(githubCli, context.Background(), owner, repo, prNumber)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "check %s pr %s error: %v\n", issue.Key, parts[0], err)
-						continue
+						// assume it has been merged, and merged in the future
+						merged = true
+						mergedAt = tomorrowNow
 					}
 					if !merged {
 						continue
 					}
-					if lastedMergedAt.IsZero() || lastedMergedAt.Before(mergedAt) {
+					if lastedMergedAt.Before(mergedAt) {
 						lastedMergedAt = mergedAt
 					}
 				}
