@@ -11,3 +11,10 @@ func Or[T comparable](vals ...T) T {
 	}
 	return zero
 }
+
+func IfElse[T any](conditon bool, v1, v2 T) T {
+	if conditon {
+		return v1
+	}
+	return v2
+}

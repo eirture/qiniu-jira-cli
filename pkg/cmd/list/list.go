@@ -26,7 +26,12 @@ var (
 	tomorrowNow              = time.Now().Add(24 * time.Hour)
 )
 
+type options struct {
+	baseURL string
+}
+
 func NewCmd(f cmdutil.Factory) *cobra.Command {
+	var opt options
 	cmd := &cobra.Command{
 		Use:     "list-deploying-issues SERVICE [SERVICE...]",
 		Aliases: []string{"ldi"},
@@ -49,6 +54,7 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 			slices.SortFunc(issues, func(a, b Issue) int {
 				return a.MergedAt.Compare(b.MergedAt)
 			})
+			titles := []string{"Issue", "Merged At", "Unpublished Services"}
 			data := [][]string{}
 			for _, issue := range issues {
 				mergedAt := "Unknown"
@@ -56,16 +62,17 @@ func NewCmd(f cmdutil.Factory) *cobra.Command {
 					mergedAt = issue.MergedAt.Local().Format("2006-01-02 15:04:05 -07:00")
 				}
 				data = append(data, []string{
-					issue.Key,
+					opt.baseURL + issue.Key,
 					mergedAt,
 					strings.Join(issue.UnpublishedServices, ", "),
 				})
 				// fmt.Println(issue.Key, issue.MergedAt, issue.UnpublishedServices)
 			}
-			cmdutil.WriteTable(data, "Issue", "Merged At", "Unpublished Services")
+			cmdutil.WriteTable(data, titles...)
 			return
 		},
 	}
+	cmd.Flags().StringVarP(&opt.baseURL, "base-url", "b", "https://jira.qiniu.io/browse/", "Jira base URL")
 	return cmd
 }
 
